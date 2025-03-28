@@ -1,0 +1,267 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diabetes Prediction</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(to right, #09203f, #537895);
+            color: white;
+        }
+
+        .container {
+            width: 400px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+
+        h2 {
+            margin-bottom: 20px;
+            font-size: 22px;
+        }
+
+        label {
+            display: block;
+            text-align: left;
+            font-weight: bold;
+            margin: 10px 0 5px;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 8px;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .sbt-btn {
+            width: 100%;
+            margin-top: 15px;
+            padding: 10px;
+            font-size: 16px;
+            background-color: #00ccff;
+            border: none;
+            color: white;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: 0.3s;
+        }
+
+        .sbt-btn:hover {
+            background-color: #0099cc;
+        }
+
+        .result-box {
+            margin-top: 15px;
+            padding: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 5px;
+            display: none;
+        }
+
+        .toggle-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+
+        .toggle-btn {
+            width: 48%;
+            padding: 10px;
+            background: #00ccff;
+            border: none;
+            color: white;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: 0.3s;
+        }
+
+        .toggle-btn:hover {
+            background: #0099cc;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>Diabetes Prediction Form</h2>
+
+        <div class="toggle-buttons">
+            <button class="toggle-btn" onclick="showForm('medical')">Use Medical Data</button>
+            <button class="toggle-btn" onclick="showForm('lifestyle')">Use Symptoms & Lifestyle</button>
+        </div>
+
+        <!-- Medical Data Form -->
+        <form id="medical-form" action="{% url 'result' %}" method="POST">
+            {% csrf_token %}
+
+            <label>Pregnancies:</label>
+            <select name="n1">
+                <option value="0">0</option>
+                <option value="1">1-2</option>
+                <option value="3">3-4</option>
+                <option value="5">5+</option>
+            </select>
+
+            <label>Glucose Level:</label>
+            <input type="number" name="n2" required>
+
+            <label>Blood Pressure:</label>
+            <input type="number" name="n3" required>
+
+            <label>Weight (kg):</label>
+            <input type="number" id="weight" oninput="calculateBMI()" required>
+
+            <label>Height (cm):</label>
+            <input type="number" id="height" oninput="calculateBMI()" required>
+
+            <label>BMI (Auto-Calculated):</label>
+            <input type="number" name="n6" id="bmi" readonly required>
+
+            <label>Diabetes Pedigree:</label>
+            <select name="n7">
+                <option value="0">No</option>
+                <option value="1">One Parent</option>
+                <option value="2">Both Parents</option>
+            </select>
+
+            <label>Age:</label>
+            <input type="number" name="n8" required>
+
+            <button type="submit" class="sbt-btn">Predict</button>
+        </form>
+
+        <!-- Symptoms & Lifestyle Form -->
+        <form id="lifestyle-form" class="hidden" action="{% url 'result' %}" method="POST">
+            {% csrf_token %}
+
+            <label>Frequent Thirst?</label>
+            <select name="symptom1">
+                <option value="0">No</option>
+                <option value="1">Yes</option>
+            </select>
+
+            <label>Frequent Urination?</label>
+            <select name="symptom2">
+                <option value="0">No</option>
+                <option value="1">Yes</option>
+            </select>
+
+            <label>Fatigue?</label>
+            <select name="symptom3">
+                <option value="0">No</option>
+                <option value="1">Yes</option>
+            </select>
+
+            <label>Blurred Vision?</label>
+            <select name="symptom4">
+                <option value="0">No</option>
+                <option value="1">Yes</option>
+            </select>
+
+            <label>Do You Exercise Regularly?</label>
+            <select name="lifestyle1">
+                <option value="0">No</option>
+                <option value="1">Yes</option>
+            </select>
+
+            <label>Do You Eat a Healthy Diet?</label>
+            <select name="lifestyle2">
+                <option value="0">No</option>
+                <option value="1">Yes</option>
+            </select>
+
+            <label>Do You Have Family History of Diabetes?</label>
+            <select name="lifestyle3">
+                <option value="0">No</option>
+                <option value="1">Yes</option>
+            </select>
+
+            <button type="submit" class="sbt-btn">Predict</button>
+        </form>
+
+    </div>
+
+    <div id="result" class="result-box" {% if result2 %}style="display: block;"{% else %}style="display: none;"{% endif %}>
+        <p><strong>Prediction:</strong> <span style="color: yellow;">{{ result2 }}</span></p>
+
+        <div id="recommendation">
+            {% if result2 == "POSITIVE" %}
+                <p style="color: red;"><strong>⚠ High Risk:</strong> Please consult a doctor immediately.</p>
+                <p><strong>Recommendations:</strong></p>
+                <ul>
+                    <li>Follow a **low-carb, high-fiber diet**.</li>
+                    <li>Exercise **at least 30 minutes daily** (walking, jogging, or yoga).</li>
+                    <li>Monitor **blood sugar levels** regularly.</li>
+                    <li>Avoid **processed sugars & junk food**.</li>
+                </ul>
+            {% elif result2 == "MODERATE" %}
+                <p style="color: orange;"><strong>⚠ Moderate Risk:</strong> Lifestyle changes are needed.</p>
+                <p><strong>Recommendations:</strong></p>
+                <ul>
+                    <li>Maintain a **balanced diet** with fresh fruits & vegetables.</li>
+                    <li>Increase **physical activity** (cardio, strength training).</li>
+                    <li>Reduce **stress levels** through meditation or deep breathing.</li>
+                    <li>Avoid **smoking & excessive alcohol consumption**.</li>
+                </ul>
+            {% elif result2 == "NEGATIVE" %}
+                <p style="color: green;"><strong>✅ Low Risk:</strong> Keep maintaining a healthy lifestyle!</p>
+                <p><strong>Preventive Tips:</strong></p>
+                <ul>
+                    <li>Eat **healthy meals with whole grains & proteins**.</li>
+                    <li>Exercise **regularly to stay fit & maintain good metabolism**.</li>
+                    <li>Get enough **sleep & stay hydrated**.</li>
+                    <li>Have regular **health check-ups**.</li>
+                </ul>
+            {% endif %}
+        </div>
+    </div>
+
+    
+
+    <script>
+        function showForm(type) {
+            if (type === 'medical') {
+                document.getElementById('medical-form').classList.remove('hidden');
+                document.getElementById('lifestyle-form').classList.add('hidden');
+            } else {
+                document.getElementById('medical-form').classList.add('hidden');
+                document.getElementById('lifestyle-form').classList.remove('hidden');
+            }
+        }
+
+        function calculateBMI() {
+            let weight = document.getElementById("weight").value;
+            let height = document.getElementById("height").value;
+            if (weight && height) {
+                let bmi = (weight / ((height / 100) ** 2)).toFixed(2);
+                document.getElementById("bmi").value = bmi;
+            }
+        }
+    </script>
+
+</body>
+</html>
